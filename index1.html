@@ -5,6 +5,134 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 <title>G.R.O.W.T.H. Smart Planter Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module">
+  // ✅ Firebase Imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+  // ✅ Firebase Config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ✅ Chart.js Setup
+  let barChart = new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: {
+      labels: ["2 Days Ago", "Yesterday", "Today"],
+      datasets: [{
+        label: "Plant Health (%)",
+        data: [0, 0, 0],
+        backgroundColor: "rgba(0, 255, 128, 0.7)"
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { min: 0, max: 100 } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  let pieChart = new Chart(document.getElementById("pieChart"), {
+    type: "pie",
+    data: {
+      labels: ["N", "P", "K"],
+      datasets: [{
+        data: [0, 0, 0],
+        backgroundColor: ["#4CAF50", "#FFEB3B", "#FF5722"]
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  // ✅ Live Firebase Sync
+  const plantRef = ref(db, "TANIM-ASHS/sensor");
+  const idealRef = ref(db, "TANIM-ASHS/ideals");
+  const healthRef = ref(db, "TANIM-ASHS/health");
+
+  let ideals = {};
+
+  onValue(idealRef, (snap) => {
+    ideals = snap.val() || {};
+  });
+
+  onValue(plantRef, (snap) => {
+    const d = snap.val();
+    if (!d) return;
+
+    document.getElementById("tempVal").innerText = `${d.temp} °C`;
+    document.getElementById("humVal").innerText = `${d.hum}%`;
+    document.getElementById("condVal").innerText = `${d.cond}%`;
+    document.getElementById("luxVal").innerText = `${d.lux}%`;
+    document.getElementById("moistVal").innerText = `${d.moist}%`;
+    document.getElementById("phVal").innerText = `${d.ph}`;
+
+    // Compute errors
+    const errors = {};
+    for (const key in ideals) {
+      const ideal = ideals[key];
+      const actual = d[key];
+      if (ideal && actual !== undefined) {
+        errors[key] = Math.abs(((actual - ideal) / ideal) * 100).toFixed(1);
+      }
+    }
+
+    // Update error list
+    let errText = "";
+    for (const [key, val] of Object.entries(errors)) {
+      errText += `${key.toUpperCase()}: ${val}%\n`;
+    }
+    document.getElementById("errorList").innerText = errText;
+
+    // Update pie chart (NPK)
+    pieChart.data.datasets[0].data = [d.N, d.P, d.K];
+    pieChart.update();
+
+    // Show NPK error
+    const npkError = Math.abs((d.N + d.P + d.K) / 3 - 100).toFixed(1);
+    document.getElementById("npkError").innerText = `Error from ideal: ${npkError}%`;
+  });
+
+  // ✅ Health Bar Chart
+  onValue(healthRef, (snap) => {
+    const h = snap.val();
+    if (!h) return;
+    const avg = [
+      h["2daysago"] || 0,
+      h["yesterday"] || 0,
+      h["today"] || 0
+    ];
+    barChart.data.datasets[0].data = avg;
+    barChart.update();
+  });
+
+  // ✅ Pump / Mist Control
+  const pumpRef = ref(db, "TANIM-ASHS/controls/pump");
+  const mistRef = ref(db, "TANIM-ASHS/controls/mist");
+
+  const pumpToggle = document.getElementById("pumpToggle");
+  const mistToggle = document.getElementById("mistToggle");
+
+  onValue(pumpRef, (snap) => { pumpToggle.checked = snap.val() === 1; });
+  onValue(mistRef, (snap) => { mistToggle.checked = snap.val() === 1; });
+
+  pumpToggle.addEventListener("change", () => {
+    update(pumpRef, { value: pumpToggle.checked ? 1 : 0 });
+  });
+
+  mistToggle.addEventListener("change", () => {
+    update(mistRef, { value: mistToggle.checked ? 1 : 0 });
+  });
+</script>
 
 <style>
   body {
@@ -60,29 +188,11 @@
     transition: transform 0.2s ease;
   }
 
-  .card:active {
-    transform: scale(0.97);
-  }
-
-  .card.large {
-    width: 45%;
-    height: 170px;
-  }
-
-  .card.full {
-    width: 95%;
-    height: 150px;
-  }
-
-  .card.small {
-    width: 45%;
-    height: 70px;
-  }
-
-  .card.square {
-    width: 28%;
-    height: 90px;
-  }
+  .card:active { transform: scale(0.97); }
+  .card.large { width: 45%; height: 170px; }
+  .card.full { width: 95%; height: 150px; }
+  .card.small { width: 45%; height: 70px; }
+  .card.square { width: 28%; height: 90px; }
 
   canvas {
     width: 90% !important;
@@ -123,39 +233,26 @@
   input.mist:checked + .slider { background-color: #f4d03f; }
   input:checked + .slider:before { transform: translateX(26px); }
 
-  /* 🔹 Mobile Optimization */
+  /* ✅ Mobile Optimization Fix */
   @media (max-width: 768px) {
     body { padding: 3vh 3vw; }
     .dashboard { width: 95%; }
 
-    /* Stack top charts but keep control buttons side-by-side */
     .card.large,
     .card.full {
       width: 100%;
       height: 160px;
     }
 
-    .row {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      width: 100%;
+    /* Keep switches side-by-side */
+    .row:nth-of-type(3) {
+      justify-content: space-between;
     }
-
-    /* Force both switches to stay side by side */
     .row:nth-of-type(3) .card.small {
-      width: 47%;
+      flex: 1;
       min-width: 150px;
       height: 80px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .card.small {
-      width: 48%;
-      height: 70px;
+      margin: 0 5px;
     }
 
     .card.square {
@@ -174,7 +271,6 @@
   <h2>Smart Planter Dashboard</h2>
 
   <div class="dashboard">
-    <!-- Top Row -->
     <div class="row">
       <div class="card large">
         <h3>Plant Health (Last 3 Days)</h3>
@@ -187,7 +283,6 @@
       </div>
     </div>
 
-    <!-- Middle Row -->
     <div class="row">
       <div class="card full">
         <h3>Individual Variable Errors</h3>
@@ -195,7 +290,6 @@
       </div>
     </div>
 
-    <!-- Control Row -->
     <div class="row">
       <div class="card small">
         <span>Switch Pump</span>
@@ -213,7 +307,6 @@
       </div>
     </div>
 
-    <!-- Sensor Grid (6 vars) -->
     <div class="row">
       <div class="card square"><div>🌡️</div><div id="tempVal">-- °C</div></div>
       <div class="card square"><div>💧</div><div id="humVal">-- %</div></div>
@@ -227,10 +320,5 @@
       <div class="card square"><div>🌈</div><div id="phVal">--</div></div>
     </div>
   </div>
-
-  <!-- Firebase + Charts (same logic as before) -->
-  <script type="module">
-    /* 🔹 Reuse your existing Firebase + Chart.js logic here — unchanged */
-  </script>
 </body>
 </html>
