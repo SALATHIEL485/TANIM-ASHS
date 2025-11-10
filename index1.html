@@ -1,4 +1,4 @@
-<!-- 🪴 G.R.O.W.T.H. Smart Planter Dashboard (Optimized Layout v2) -->
+<!-- 🪴 G.R.O.W.T.H. Smart Planter Dashboard (Grid-Optimized for Android v3) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,21 +32,13 @@
     margin-top: 0;
   }
 
+  /* Use CSS GRID for stable layout */
   .dashboard {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
     width: 100%;
     max-width: 800px;
-    gap: 15px;
-  }
-
-  .row {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    width: 100%;
   }
 
   .card {
@@ -61,14 +53,34 @@
     text-align: center;
     backdrop-filter: blur(6px);
     color: #fff;
+    padding: 8px;
   }
 
-  .card.large { width: 48%; height: 200px; }
-  .card.full { width: 98%; height: 160px; }
-  .card.small { width: 46%; height: 70px; }
-  .card.square { width: 30%; height: 100px; font-size: 1rem; }
+  .card.large {
+    grid-column: span 1;
+    height: 200px;
+  }
 
-  canvas { width: 90% !important; aspect-ratio: 1 / 1.1; }
+  .card.full {
+    grid-column: span 2;
+    height: 160px;
+  }
+
+  .card.small {
+    grid-column: span 1;
+    height: 80px;
+  }
+
+  .card.square {
+    grid-column: span 1;
+    height: 100px;
+    font-size: 1rem;
+  }
+
+  canvas {
+    width: 90% !important;
+    aspect-ratio: 1 / 1.1;
+  }
 
   /* Toggle switches */
   .switch {
@@ -101,11 +113,23 @@
   input.mist:checked + .slider { background-color: #f4d03f; }
   input:checked + .slider:before { transform: translateX(26px); }
 
-  /* Responsive */
+  /* Responsive mobile tweaks */
   @media (max-width: 768px) {
-    .card.large, .card.full { width: 95%; height: 180px; }
-    .card.small { width: 44%; height: 70px; }
-    .card.square { width: 30%; height: 90px; }
+    .dashboard {
+      grid-template-columns: 1fr 1fr;
+    }
+    .card.full {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .dashboard {
+      grid-template-columns: 1fr;
+    }
+    .card.full {
+      grid-column: span 1;
+    }
   }
 </style>
 </head>
@@ -116,54 +140,44 @@
 
   <div class="dashboard">
 
-    <!-- Top Row -->
-    <div class="row">
-      <div class="card large">
-        <h3>Plant Health (Last 3 Days)</h3>
-        <canvas id="barChart"></canvas>
-      </div>
-      <div class="card large">
-        <h3>NPK Ratio Pie Graph</h3>
-        <canvas id="pieChart"></canvas>
-        <div id="npkError">Error from ideal: --%</div>
-      </div>
+    <!-- Top Charts -->
+    <div class="card large">
+      <h3>Plant Health (Last 3 Days)</h3>
+      <canvas id="barChart"></canvas>
+    </div>
+    <div class="card large">
+      <h3>NPK Ratio Pie Graph</h3>
+      <canvas id="pieChart"></canvas>
+      <div id="npkError">Error from ideal: --%</div>
     </div>
 
-    <!-- Middle Row -->
-    <div class="row">
-      <div class="card full">
-        <h3>Individual Variable Errors</h3>
-        <div id="errorList" style="white-space: pre-line;">--</div>
-      </div>
+    <!-- Errors -->
+    <div class="card full">
+      <h3>Individual Variable Errors</h3>
+      <div id="errorList" style="white-space: pre-line;">--</div>
     </div>
 
     <!-- Controls -->
-    <div class="row">
-      <div class="card small">
-        <span>Switch Pump</span>
-        <label class="switch"><input id="pumpToggle" class="pump" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="card small">
-        <span>Switch Fertilizer</span>
-        <label class="switch"><input id="mistToggle" class="mist" type="checkbox"><span class="slider"></span></label>
-      </div>
+    <div class="card small">
+      <span>Switch Pump</span>
+      <label class="switch"><input id="pumpToggle" class="pump" type="checkbox"><span class="slider"></span></label>
+    </div>
+    <div class="card small">
+      <span>Switch Fertilizer</span>
+      <label class="switch"><input id="mistToggle" class="mist" type="checkbox"><span class="slider"></span></label>
     </div>
 
-    <!-- Sensor Grid (6 variables only) -->
-    <div class="row">
-      <div class="card square"><div>🌡️</div><div id="tempVal">-- °C</div></div>
-      <div class="card square"><div>💧</div><div id="humVal">-- %</div></div>
-      <div class="card square"><div>⚡</div><div id="condVal">-- %</div></div>
-    </div>
-    <div class="row">
-      <div class="card square"><div>☀️</div><div id="luxVal">-- %</div></div>
-      <div class="card square"><div>💦</div><div id="moistVal">-- %</div></div>
-      <div class="card square"><div>🌈</div><div id="phVal">--</div></div>
-    </div>
+    <!-- Sensor Values (6 total) -->
+    <div class="card square"><div>🌡️</div><div id="tempVal">-- °C</div></div>
+    <div class="card square"><div>💧</div><div id="humVal">-- %</div></div>
+    <div class="card square"><div>⚡</div><div id="condVal">-- %</div></div>
+    <div class="card square"><div>☀️</div><div id="luxVal">-- %</div></div>
+    <div class="card square"><div>💦</div><div id="moistVal">-- %</div></div>
+    <div class="card square"><div>🌈</div><div id="phVal">--</div></div>
 
   </div>
 
-  <!-- Firebase + Chart.js (unchanged logic) -->
+  <!-- Firebase + Chart.js -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
     import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
