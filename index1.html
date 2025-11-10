@@ -212,16 +212,48 @@ onValue(mistRef, s => document.getElementById("mistToggle").checked = s.val());
 document.getElementById("pumpToggle").onchange = e => set(pumpRef, e.target.checked);
 document.getElementById("mistToggle").onchange = e => set(mistRef, e.target.checked);
 
-document.getElementById("exportBtn").onclick = () => {
-  const rows = [["Timestamp","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
-  lastDailyLogs.forEach(r => rows.push(Object.values(r)));
-  const csv = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "plant_log.csv";
-  a.click();
+document.getElementById("exportBtn").onclick = async () => {
+  try {
+    const snapshot = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js")
+      .then(({ getDatabase, ref, get }) => get(ref(getDatabase(app), "/TANIM-ASHS/readings")));
+
+    if (!snapshot.exists()) {
+      alert("No readings found in Firebase.");
+      return;
+    }
+
+    const data = snapshot.val();
+    const rows = [["Date","Timestamp","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
+    Object.keys(data).forEach(id => {
+      const r = data[id];
+      rows.push([
+        new Date(r.timestamp || Date.now()).toLocaleString(),
+        r.Temp || "",
+        r.Humidity || "",
+        r.Conductivity || "",
+        r.Lux || "",
+        r.Moisture || "",
+        r.PH || "",
+        r.N || "",
+        r.P || "",
+        r.K || ""
+      ]);
+    });
+
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `plant_log_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+
+    console.log("✅ Firebase data exported successfully!");
+  } catch (err) {
+    console.error("❌ Export failed:", err);
+    alert("Failed to export readings. Check console for details.");
+  }
 };
+
 
 async function updateInfoBar() {
   const now = new Date().toLocaleString();
