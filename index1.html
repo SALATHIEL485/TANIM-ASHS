@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-<title>G.R.O.W.T.H. Smart Planter Dashboard</title>
+<title>🌱 G.R.O.W.T.H. Smart Planter Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -20,7 +20,6 @@
     min-height: 100vh;
     transition: all 0.3s ease;
   }
-
   h1 { color:#fff;text-align:center;font-size:1.8em;text-shadow:0 2px 4px rgba(0,0,0,0.4); }
 
   .card {
@@ -35,10 +34,7 @@
   }
   .card:hover { transform: translateY(-5px); }
 
-  .flex-row {
-    display:flex;flex-wrap:wrap;gap:20px;justify-content:center;width:100%;max-width:1000px;
-  }
-
+  .flex-row { display:flex;flex-wrap:wrap;gap:20px;justify-content:center;width:100%;max-width:1000px; }
   canvas {width:100%;height:220px;border-radius:10px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.05);}
   #errorList {white-space:pre-line;font-size:0.9em;}
   .switch-row {display:flex;gap:30px;justify-content:center;flex-wrap:wrap;width:100%;max-width:600px;}
@@ -103,8 +99,9 @@
   </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+// ✅ Firebase v10 (Stable CDN Import)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
@@ -120,112 +117,123 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+console.log("🔥 Firebase Initialized");
+
+// === References ===
 const readingsRef = query(ref(db, "/TANIM-ASHS/readings"), limitToLast(15));
 const idealsRef = ref(db, "/TANIM-ASHS/ideals");
 const pumpRef = ref(db, "/TANIM-ASHS/bools/pump");
 const mistRef = ref(db, "/TANIM-ASHS/bools/mist");
 
+// === Charts ===
 const barChart = new Chart(document.getElementById("barChart"), {
-  type:"bar",
-  data:{labels:["2 Days Ago","Yesterday","Today"],datasets:[{label:"Health (%)",data:[0,0,0],backgroundColor:"#a3f7bf",borderWidth:2}]},
-  options:{responsive:true,scales:{y:{beginAtZero:true,max:100,ticks:{color:"#fff"},grid:{color:"rgba(255,255,255,0.2)"}},x:{ticks:{color:"#fff"}}},plugins:{legend:{labels:{color:"#fff"}}}}
+  type: "bar",
+  data: { labels: ["2 Days Ago", "Yesterday", "Today"], datasets: [{ label: "Health (%)", data: [0, 0, 0], backgroundColor: "#a3f7bf" }] },
+  options: { scales: { y: { beginAtZero: true, max: 100 } } }
 });
-
 const pieChart = new Chart(document.getElementById("pieChart"), {
-  type:"pie",
-  data:{labels:["N","P","K"],datasets:[{data:[0,0,0],backgroundColor:["#0077b6","#00b4d8","#90e0ef"],borderColor:"#fff",borderWidth:2}]},
-  options:{responsive:true,plugins:{legend:{labels:{color:"#fff"}}}}
+  type: "pie",
+  data: { labels: ["N", "P", "K"], datasets: [{ data: [0, 0, 0], backgroundColor: ["#0077b6", "#00b4d8", "#90e0ef"] }] }
 });
 
-let ideals={}, lastDailyLogs=[];
+let ideals = {}, lastDailyLogs = [];
 
-onValue(idealsRef,snap=>ideals=snap.val()||{});
+onValue(idealsRef, snap => {
+  ideals = snap.val() || {};
+  console.log("🌿 Ideals loaded:", ideals);
+});
 
-onValue(readingsRef,snapshot=>{
-  const data=snapshot.val();
-  console.log("📥 Data received:",data);
-  if(!data||typeof data!=="object")return;
+onValue(readingsRef, snapshot => {
+  const data = snapshot.val();
+  if (!data) return;
 
-  const now=new Date();
-  const today=[],yesterday=[],twoDaysAgo=[];
-  let latest=null;
+  console.log("📥 Readings:", data);
+  const now = new Date();
+  const today = [], yesterday = [], twoDaysAgo = [];
+  let latest = null;
 
-  Object.keys(data).forEach(id=>{
-    const e=data[id];
-    if(!e)return;
-    const ts=new Date(e.timestamp||Date.now());
-    const diffDays=Math.floor((now-ts)/(1000*60*60*24));
-    if(diffDays===0)today.push(e);
-    else if(diffDays===1)yesterday.push(e);
-    else if(diffDays===2)twoDaysAgo.push(e);
-    latest=e;
+  Object.keys(data).forEach(id => {
+    const e = data[id];
+    if (!e) return;
+    const ts = new Date(e.timestamp || Date.now());
+    const diffDays = Math.floor((now - ts) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) today.push(e);
+    else if (diffDays === 1) yesterday.push(e);
+    else if (diffDays === 2) twoDaysAgo.push(e);
+    latest = e;
   });
 
-  if(!latest||!ideals.Temp)return;
-  const weights={Temp:0.2,Humidity:0.15,Conductivity:0.15,Lux:0.15,PH:0.15,Moisture:0.2};
+  if (!latest || !ideals.N) return;
 
-  function computeHealth(entry){
-    let h=0;
-    for(let k in weights){
-      const val=parseFloat(entry[k])||0;
-      const ideal=parseFloat(ideals[k])||1;
-      const err=Math.abs((val-ideal)/ideal)*100;
-      h+=Math.max(0,100-err)*weights[k];
+  const weights = { Temp: 0.2, Humidity: 0.15, Conductivity: 0.15, Lux: 0.15, PH: 0.15, Moisture: 0.2 };
+  function computeHealth(entry) {
+    let h = 0;
+    for (let k in weights) {
+      const val = parseFloat(entry[k]) || 0;
+      const ideal = parseFloat(ideals[k]) || 1;
+      const err = Math.abs((val - ideal) / ideal) * 100;
+      h += Math.max(0, 100 - err) * weights[k];
     }
     return h;
   }
-  const avgH=arr=>arr.length?arr.map(computeHealth).reduce((a,b)=>a+b,0)/arr.length:0;
-  barChart.data.datasets[0].data=[avgH(twoDaysAgo),avgH(yesterday),avgH(today)];
+
+  const avgH = arr => arr.length ? arr.map(computeHealth).reduce((a,b)=>a+b,0)/arr.length : 0;
+  barChart.data.datasets[0].data = [avgH(twoDaysAgo), avgH(yesterday), avgH(today)];
   barChart.update();
 
-  const {Temp,Humidity,Conductivity,Lux,Moisture,PH,N,P,K}=latest;
-  const readings={Temp,Humidity,Conductivity,Lux,Moisture,PH};
-  for(let k in readings){
-    const el=document.getElementById(k.toLowerCase()+"val");
-    el.textContent=readings[k]+(k==="PH"?"":k==="Temp"?" °C":" %");
-    const diff=Math.abs(readings[k]-ideals[k]);
-    el.style.color=diff>(ideals[k]*0.2)?"#ff6b6b":diff>(ideals[k]*0.1)?"#ffd93d":"#a3f7bf";
+  const { Temp, Humidity, Conductivity, Lux, Moisture, PH, N, P, K } = latest;
+  const readings = { Temp, Humidity, Conductivity, Lux, Moisture, PH };
+  for (let k in readings) {
+    const el = document.getElementById(k.toLowerCase() + "val");
+    if (!el) continue;
+    el.textContent = readings[k] + (k === "Temp" ? " °C" : k === "PH" ? "" : " %");
   }
 
-  pieChart.data.datasets[0].data=[N,P,K];
+  // ✅ NPK Error vs Ideal
+  const errN = Math.abs((N - ideals.N) / ideals.N) * 100;
+  const errP = Math.abs((P - ideals.P) / ideals.P) * 100;
+  const errK = Math.abs((K - ideals.K) / ideals.K) * 100;
+  document.getElementById("npkError").textContent = `Error from ideal: N=${errN.toFixed(1)}%, P=${errP.toFixed(1)}%, K=${errK.toFixed(1)}%`;
+
+  pieChart.data.datasets[0].data = [N, P, K];
   pieChart.update();
 
-  let errTxt="";
-  for(let k in weights){
-    const val=parseFloat(readings[k])||0,ideal=parseFloat(ideals[k])||1;
-    errTxt+=`• ${k}: ${((Math.abs(val-ideal)/ideal)*100).toFixed(1)}% off\n`;
+  let errTxt = "";
+  for (let k in weights) {
+    const val = parseFloat(readings[k]) || 0;
+    const ideal = parseFloat(ideals[k]) || 1;
+    errTxt += `• ${k}: ${((Math.abs(val - ideal) / ideal) * 100).toFixed(1)}% off\n`;
   }
-  document.getElementById("errorList").textContent=errTxt;
-  lastDailyLogs.push({...latest,timestamp:new Date().toLocaleString()});
+  document.getElementById("errorList").textContent = errTxt;
 });
 
-onValue(pumpRef,s=>document.getElementById("pumpToggle").checked=s.val());
-onValue(mistRef,s=>document.getElementById("mistToggle").checked=s.val());
-document.getElementById("pumpToggle").onchange=e=>set(pumpRef,e.target.checked);
-document.getElementById("mistToggle").onchange=e=>set(mistRef,e.target.checked);
+onValue(pumpRef, s => document.getElementById("pumpToggle").checked = s.val());
+onValue(mistRef, s => document.getElementById("mistToggle").checked = s.val());
+document.getElementById("pumpToggle").onchange = e => set(pumpRef, e.target.checked);
+document.getElementById("mistToggle").onchange = e => set(mistRef, e.target.checked);
 
-document.getElementById("exportBtn").onclick=()=>{
-  const rows=[["Timestamp","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
-  lastDailyLogs.forEach(r=>rows.push(Object.values(r)));
-  const csv=rows.map(r=>r.join(",")).join("\n");
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="plant_log.csv";
+document.getElementById("exportBtn").onclick = () => {
+  const rows = [["Timestamp","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
+  lastDailyLogs.forEach(r => rows.push(Object.values(r)));
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "plant_log.csv";
   a.click();
 };
 
-async function updateInfoBar(){
-  const now=new Date().toLocaleString();
-  try{
-    const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.6&longitude=121.0&current=temperature_2m");
-    const json=await res.json();
-    document.getElementById("infoBar").textContent=`${now} | Weather: ${json.current.temperature_2m}°C`;
-  }catch{
-    document.getElementById("infoBar").textContent=now;
+async function updateInfoBar() {
+  const now = new Date().toLocaleString();
+  try {
+    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.6&longitude=121.0&current=temperature_2m");
+    const json = await res.json();
+    document.getElementById("infoBar").textContent = `${now} | Weather: ${json.current.temperature_2m}°C`;
+  } catch {
+    document.getElementById("infoBar").textContent = now;
   }
 }
-setInterval(updateInfoBar,60000);
+setInterval(updateInfoBar, 60000);
 updateInfoBar();
 </script>
 </body>
