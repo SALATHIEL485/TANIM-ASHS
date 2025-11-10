@@ -20,7 +20,6 @@
     overflow-x: hidden;
   }
 
-  /* ✅ Stable background (no zoom on scroll) */
   body::before {
     content: "";
     position: fixed;
@@ -106,7 +105,6 @@
   input.mist:checked + .slider { background-color: #f4d03f; }
   input:checked + .slider:before { transform: translateX(26px); }
 
-  /* ✅ Improved grid layout (non-overlapping) */
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -143,15 +141,10 @@
   }
 
   @media (max-width: 480px) {
-    .grid {
-      grid-template-columns: 1fr 1fr;
-    }
+    .grid { grid-template-columns: 1fr 1fr; }
   }
-
   @media (max-width: 350px) {
-    .grid {
-      grid-template-columns: 1fr;
-    }
+    .grid { grid-template-columns: 1fr; }
   }
 
   #infoBar {
@@ -184,7 +177,7 @@
       <canvas id="barChart"></canvas>
     </div>
     <div class="card" style="flex:1;min-width:300px;">
-      <h3>NPK Ratio</h3>
+      <h3>NPK Ratio (mg/kg)</h3>
       <canvas id="pieChart"></canvas>
       <div id="npkError">Error from ideal: --%</div>
     </div>
@@ -208,11 +201,11 @@
   </div>
 
   <div class="grid" id="readingsGrid">
-    <div class="card"><div class="icon">🌡️</div><div id="tempval" class="reading-val">-- °C</div><div>Temperature</div></div>
-    <div class="card"><div class="icon">💧</div><div id="humidityval" class="reading-val">-- %</div><div>Humidity</div></div>
-    <div class="card"><div class="icon">⚡</div><div id="conductivityval" class="reading-val">-- mS/cm</div><div>Conductivity</div></div>
-    <div class="card"><div class="icon">☀️</div><div id="luxval" class="reading-val">-- lux</div><div>Light</div></div>
-    <div class="card"><div class="icon">💦</div><div id="moistureval" class="reading-val">-- %</div><div>Soil Moisture</div></div>
+    <div class="card"><div class="icon">🌡️</div><div id="tempval" class="reading-val">-- °C</div><div>Temperature (°C)</div></div>
+    <div class="card"><div class="icon">💧</div><div id="humidityval" class="reading-val">-- %</div><div>Humidity (% RH)</div></div>
+    <div class="card"><div class="icon">⚡</div><div id="conductivityval" class="reading-val">-- mS/cm</div><div>Conductivity (mS/cm)</div></div>
+    <div class="card"><div class="icon">☀️</div><div id="luxval" class="reading-val">-- lux</div><div>Light (lux)</div></div>
+    <div class="card"><div class="icon">💦</div><div id="moistureval" class="reading-val">-- %</div><div>Soil Moisture (%)</div></div>
     <div class="card"><div class="icon">🌈</div><div id="phval" class="reading-val">--</div><div>pH Level</div></div>
   </div>
 
@@ -263,7 +256,7 @@ const barChart = new Chart(document.getElementById("barChart"), {
 const pieChart = new Chart(document.getElementById("pieChart"), {
   type: "pie",
   data: {
-    labels: ["N", "P", "K"],
+    labels: ["N (mg/kg)", "P (mg/kg)", "K (mg/kg)"],
     datasets: [{
       data: [0, 0, 0],
       backgroundColor: ["#0077b6", "#00b4d8", "#90e0ef"],
@@ -302,7 +295,15 @@ onValue(readingsRef, s => {
   const readings={Temp,Humidity,Conductivity,Lux,Moisture,PH};
   for(let k in readings){
     const el=document.getElementById(k.toLowerCase()+"val");
-    if(el)el.textContent=readings[k]+(k==="Temp"?" °C":k==="PH"?"":" %");
+    if(!el) continue;
+    el.textContent =
+      readings[k] +
+      (k==="Temp"?" °C":
+       k==="Humidity"?" %":
+       k==="Conductivity"?" mS/cm":
+       k==="Lux"?" lux":
+       k==="Moisture"?" %":
+       k==="PH"?"":"");
   }
 
   const errN=Math.abs((N-ideals.N)/ideals.N)*100;
@@ -332,7 +333,7 @@ document.getElementById("exportBtn").onclick=async()=>{
   const snapshot=await get(ref(db,"/TANIM-ASHS/readings"));
   if(!snapshot.exists())return alert("No readings found.");
   const data=snapshot.val();
-  const rows=[["Date","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
+  const rows=[["Date","Temp (°C)","Humidity (%)","Conductivity (mS/cm)","Lux (lux)","Moisture (%)","pH","N (mg/kg)","P (mg/kg)","K (mg/kg)"]];
   for(let id in data){
     const r=data[id];
     rows.push([new Date(r.timestamp||Date.now()).toLocaleString(),r.Temp,r.Humidity,r.Conductivity,r.Lux,r.Moisture,r.PH,r.N,r.P,r.K]);
@@ -361,4 +362,3 @@ updateInfoBar();
 </script>
 </body>
 </html>
-
