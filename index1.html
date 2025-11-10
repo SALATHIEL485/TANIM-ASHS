@@ -1,352 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>G.R.O.W.T.H. Smart Planter Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>G.R.O.W.T.H. Smart Planter Dashboard</title>
+<style>
+  :root {
+    --card-bg: #ffffff;
+    --card-border: #222;
+    --shadow: rgba(0, 0, 0, 0.08);
+  }
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  body {
+    font-family: "Poppins", "Roboto", sans-serif;
+    background-color: #f3f4f6;
+    color: #111;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: url("4.png") no-repeat center center fixed;
-      background-size: cover;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-      color: #fff;
-    }
+  header {
+    text-align: center;
+    margin-top: 15px;
+  }
 
-    h1 {
-      margin-top: 10px;
-      font-size: 1.6em;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-      text-align: center;
-    }
+  header h1 {
+    font-size: 1.4rem;
+    margin: 0;
+    letter-spacing: 1px;
+  }
 
-    .dashboard {
-      display: grid;
-      grid-template-rows: 1fr auto 1fr;
-      gap: 10px;
-      width: 85%;
-      height: 80%;
-    }
+  header h2 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 5px 0 15px;
+  }
 
-    /* Top section for charts */
-    .charts {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      align-items: stretch;
-    }
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 95%;
+    max-width: 420px;
+    margin-bottom: 40px;
+  }
 
-    .card {
-      backdrop-filter: blur(14px) brightness(1.1);
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-    }
+  .row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
 
-    canvas {
-      width: 90% !important;
-      aspect-ratio: 1 / 1.1;
-    }
+  .card {
+    background-color: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 15px;
+    box-shadow: 0 2px 4px var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.95rem;
+    padding: 10px;
+    user-select: none;
+    transition: transform 0.2s ease;
+  }
 
-    /* Middle section for errors */
-    .errors {
-      text-align: left;
-      padding: 10px 20px;
-      font-size: 0.9em;
-      white-space: pre-line;
-      width: 100%;
-    }
+  .card:active {
+    transform: scale(0.97);
+  }
 
-    #errorList {
-      line-height: 1.6;
-    }
+  .card.large {
+    width: 100%;
+    height: 160px;
+  }
 
-    #errorList::before {
-      content: "* ";
-    }
+  .card.full {
+    width: 100%;
+    height: 130px;
+  }
 
-    /* Switches section */
-    .switches {
-      display: flex;
-      justify-content: space-evenly;
-      align-items: center;
-      width: 100%;
-    }
+  .card.small {
+    width: 48%;
+    height: 60px;
+    font-weight: 600;
+    background-color: #e9f5ff;
+  }
 
-    .toggle-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
+  .card.square {
+    width: 30%;
+    height: 80px;
+  }
 
-    .toggle-label {
-      font-weight: bold;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 56px;
-      height: 30px;
-    }
-
-    .switch input {
-      display: none;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(255, 255, 255, 0.3);
-      transition: 0.3s;
-      border-radius: 34px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 22px;
-      width: 22px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
-    }
-
-    input.pump:checked + .slider {
-      background-color: #2196f3;
-    }
-
-    input.mist:checked + .slider {
-      background-color: #f4d03f;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-
-    /* Lower sensor grid */
-    .sensors {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .sensor-card {
-      backdrop-filter: blur(14px) brightness(1.1);
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 12px;
-      text-align: center;
-      padding: 6px;
-      font-size: 0.9em;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    }
-
-    .icon {
-      font-size: 1.6em;
-      display: block;
-    }
-
-    @media (max-width: 800px) {
-      .charts {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
-      .sensors {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-  </style>
+  /* Responsive fine-tuning */
+  @media (min-width: 480px) {
+    .card.large { width: 47%; height: 170px; }
+    .card.full { width: 100%; height: 140px; }
+    .card.small { width: 46%; height: 70px; }
+    .card.square { width: 28%; height: 90px; }
+  }
+</style>
 </head>
-
 <body>
-  <h1>G.R.O.W.T.H. Smart Planter Dashboard</h1>
 
-  <div class="dashboard">
-    <div class="charts">
-      <div class="card">
-        <h3>Plant Health (Last 3 Days)</h3>
-        <canvas id="barChart"></canvas>
-      </div>
+<header>
+  <h1>G.R.O.W.T.H.</h1>
+  <h2>Smart Planter Dashboard</h2>
+</header>
 
-      <div class="card">
-        <h3>NPK Ratio Pie Graph</h3>
-        <canvas id="pieChart"></canvas>
-        <div id="npkError">Error from ideal: --%</div>
-      </div>
-    </div>
+<div class="dashboard">
 
-    <div class="card errors">
-      <h3 style="text-align:center;">Individual Variable Errors</h3>
-      <div id="errorList">* --</div>
-    </div>
-
-    <div class="switches">
-      <div class="toggle-wrapper">
-        <span class="toggle-label">Switch Pump</span>
-        <label class="switch">
-          <input id="pumpToggle" class="pump" type="checkbox">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="toggle-wrapper">
-        <span class="toggle-label">Switch Fertilizer</span>
-        <label class="switch">
-          <input id="mistToggle" class="mist" type="checkbox">
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="sensors">
-      <div class="sensor-card"><span class="icon">🌡️</span><div id="tempVal">-- °C</div><div>Temperature</div></div>
-      <div class="sensor-card"><span class="icon">💧</span><div id="humVal">-- %</div><div>Humidity</div></div>
-      <div class="sensor-card"><span class="icon">⚡</span><div id="condVal">-- %</div><div>Conductivity</div></div>
-      <div class="sensor-card"><span class="icon">☀️</span><div id="luxVal">-- %</div><div>Light</div></div>
-      <div class="sensor-card"><span class="icon">💦</span><div id="moistVal">-- %</div><div>Soil Moisture</div></div>
-      <div class="sensor-card"><span class="icon">🌈</span><div id="phVal">--</div><div>pH Level</div></div>
-    </div>
+  <!-- Top Row -->
+  <div class="row">
+    <div class="card large">plant health</div>
+    <div class="card large">ratio pie graph</div>
   </div>
 
-  <!-- Firebase + Chart.js Integration -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+  <!-- Middle Row -->
+  <div class="row">
+    <div class="card full">individual errors</div>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
-      authDomain: "tanim-ashs.firebaseapp.com",
-      databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "tanim-ashs",
-      storageBucket: "tanim-ashs.firebasestorage.app",
-      messagingSenderId: "459105073919",
-      appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
-      measurementId: "G-Q16E4V78WQ"
-    };
+  <!-- Control Row -->
+  <div class="row">
+    <div class="card small">switch pump</div>
+    <div class="card small">switch fertilizer</div>
+  </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  <!-- Sensor Grid -->
+  <div class="row">
+    <div class="card square"></div>
+    <div class="card square"></div>
+    <div class="card square"></div>
+  </div>
+  <div class="row">
+    <div class="card square"></div>
+    <div class="card square"></div>
+  </div>
+  <div class="row">
+    <div class="card square"></div>
+    <div class="card square"></div>
+  </div>
 
-    const readingsRef = query(ref(db, "/TANIM-ASHS/readings"), limitToLast(15));
-    const idealsRef = ref(db, "/TANIM-ASHS/ideals");
-    const pumpRef = ref(db, "/TANIM-ASHS/bools/pump");
-    const mistRef = ref(db, "/TANIM-ASHS/bools/mist");
+</div>
 
-    const barChart = new Chart(document.getElementById("barChart"), {
-      type: "bar",
-      data: { labels: ["2 Days Ago", "Yesterday", "Today"], datasets: [{ label: "Plant Health (%)", data: [0, 0, 0], backgroundColor: "#a3f7bf", borderColor: "#fff", borderWidth: 1 }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { color: "#fff" } }, x: { ticks: { color: "#fff" } } }, plugins: { legend: { labels: { color: "#fff" } } } }
-    });
-
-    const pieChart = new Chart(document.getElementById("pieChart"), {
-      type: "pie",
-      data: { labels: ["N", "P", "K"], datasets: [{ data: [0, 0, 0], backgroundColor: ["#0077b6", "#00b4d8", "#90e0ef"], borderColor: "#fff", borderWidth: 1 }] },
-      options: { responsive: true, plugins: { legend: { labels: { color: "#fff" } } } }
-    });
-
-    let ideals = {};
-
-    onValue(idealsRef, (snapshot) => { ideals = snapshot.val() || {}; });
-
-    onValue(readingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data || !ideals.Temp) return;
-
-      const now = new Date();
-      const today = [], yesterday = [], twoDaysAgo = [];
-      let latest = null;
-      const weights = { Temp: 0.2, Humidity: 0.15, Conductivity: 0.15, Lux: 0.15, PH: 0.15, Moisture: 0.2 };
-
-      Object.values(data).forEach(entry => {
-        const ts = entry.timestamp ? new Date(entry.timestamp) : new Date();
-        const diffDays = Math.floor((now - ts) / (1000 * 60 * 60 * 24));
-        if (diffDays === 0) today.push(entry);
-        else if (diffDays === 1) yesterday.push(entry);
-        else if (diffDays === 2) twoDaysAgo.push(entry);
-        latest = entry;
-      });
-
-      function computeHealth(entry) {
-        if (!entry) return 0;
-        let health = 0;
-        for (let key in weights) {
-          const val = parseFloat(entry[key]) || 0;
-          const ideal = parseFloat(ideals[key]) || 1;
-          const error = Math.abs((val - ideal) / ideal) * 100;
-          const eff = Math.max(0, 100 - error);
-          health += eff * weights[key];
-        }
-        return health;
-      }
-
-      function avgHealth(list) {
-        if (list.length === 0) return 0;
-        return list.map(computeHealth).reduce((a,b)=>a+b,0) / list.length;
-      }
-
-      const healths = [avgHealth(twoDaysAgo).toFixed(1), avgHealth(yesterday).toFixed(1), avgHealth(today).toFixed(1)];
-      barChart.data.datasets[0].data = healths;
-      barChart.update();
-
-      const N = latest.N || 0, P = latest.P || 0, K = latest.K || 0;
-      pieChart.data.datasets[0].data = [N, P, K];
-      pieChart.update();
-
-      const total = N + P + K;
-      const nRatio = total ? N / total : 0;
-      const pRatio = total ? P / total : 0;
-      const kRatio = total ? K / total : 0;
-      const idealRatio = [0.5, 0.1667, 0.3333];
-      const errN = Math.abs((nRatio - idealRatio[0]) / idealRatio[0]) * 100;
-      const errP = Math.abs((pRatio - idealRatio[1]) / idealRatio[1]) * 100;
-      const errK = Math.abs((kRatio - idealRatio[2]) / idealRatio[2]) * 100;
-      const avgError = ((errN + errP + errK) / 3).toFixed(1);
-      document.getElementById("npkError").textContent = `Error from ideal: ${avgError}%`;
-
-      document.getElementById("tempVal").textContent = (latest.Temp ?? "--") + " °C";
-      document.getElementById("humVal").textContent = (latest.Humidity ?? "--") + " %";
-      document.getElementById("luxVal").textContent = (latest.Lux ?? "--") + " %";
-      document.getElementById("condVal").textContent = (latest.Conductivity ?? "--") + " %";
-      document.getElementById("moistVal").textContent = (latest.Moisture ?? "--") + " %";
-      document.getElementById("phVal").textContent = latest.PH ?? "--";
-
-      let errTxt = "";
-      for (let key in weights) {
-        const val = parseFloat(latest[key]) || 0;
-        const ideal = parseFloat(ideals[key]) || 1;
-        const error = Math.abs((val - ideal) / ideal) * 100;
-        errTxt += `* ${key}: ${error.toFixed(1)}% off\n`;
-      }
-      document.getElementById("errorList").textContent = errTxt.trim();
-    });
-
-    onValue(pumpRef, snap => { document.getElementById("pumpToggle").checked = snap.val() === true; });
-    onValue(mistRef, snap => { document.getElementById("mistToggle").checked = snap.val() === true; });
-    document.getElementById("pumpToggle").addEventListener("change", e => set(pumpRef, e.target.checked));
-    document.getElementById("mistToggle").addEventListener("change", e => set(mistRef, e.target.checked));
-  </script>
 </body>
 </html>
